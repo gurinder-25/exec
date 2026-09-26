@@ -42,11 +42,15 @@ curl -X POST http://localhost:8080/api/v1/execute \
 
 `status` is `SUCCESS`, `ERROR` or `TIMEOUT`.
 
+![Running C code with POST /api/v1/execute](docs/images/execute.png)
+
 **List languages**
 
 ```
 curl http://localhost:8080/api/v1/languages
 ```
+
+![Listing languages with GET /api/v1/languages](docs/images/availableLanguages.png)
 
 ## Safe by default
 
