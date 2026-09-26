@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileSystemUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -134,20 +135,34 @@ public class ExecutionEngine {
             if (mdc != null) {
                 MDC.setContextMap(mdc);
             }
+            // Read in chunks so output already read is kept if the stream is
+            // closed early (killing a timed-out process closes its streams).
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            boolean truncated = false;
             try (stream) {
-                byte[] bytes = stream.readNBytes(MAX_OUTPUT_BYTES);
-                String output = new String(bytes, StandardCharsets.UTF_8);
-                if (stream.read() != -1) {
-                    log.warn("Output truncated at {} bytes", MAX_OUTPUT_BYTES);
-                    output += "\n... [output truncated at " + MAX_OUTPUT_BYTES + " bytes]";
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = stream.read(buffer)) != -1) {
+                    int room = MAX_OUTPUT_BYTES - out.size();
+                    if (read > room) {
+                        out.write(buffer, 0, room);
+                        truncated = true;
+                        break;
+                    }
+                    out.write(buffer, 0, read);
                 }
-                return output;
             } catch (IOException e) {
-                log.debug("Failed to read container output: {}", e.getMessage());
-                return "";
+                log.debug("Stopped reading container output: {}", e.getMessage());
             } finally {
                 MDC.clear();
             }
+
+            String output = out.toString(StandardCharsets.UTF_8);
+            if (truncated) {
+                log.warn("Output truncated at {} bytes", MAX_OUTPUT_BYTES);
+                output += "\n... [output truncated at " + MAX_OUTPUT_BYTES + " bytes]";
+            }
+            return output;
         });
     }
 
