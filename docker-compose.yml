@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    container_name: exec
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      EXECUTOR_WORK_DIR: /tmp/exec-work
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/exec-work:/tmp/exec-work
