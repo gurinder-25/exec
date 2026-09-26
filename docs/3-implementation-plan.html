@@ -222,6 +222,17 @@
     </tbody>
   </table></div>
 </section>
+
+<section id="p6">
+  <h2>Phase 6 · Tests</h2>
+  <div class="table-wrap"><table class="plan">
+    <thead><tr><th>Step</th><th>What</th><th>Files</th><th>Check</th><th>Commit</th></tr></thead>
+    <tbody>
+      <tr><td>12</td><td>Read output in chunks so output printed before a timeout is kept</td><td><code>executionEngine/ExecutionEngine.java</code></td><td>TO-02 returns <code>"started\n"</code></td><td><code>fix: keep output printed before a timeout</code></td></tr>
+      <tr><td>13</td><td>Tests for every case in the test cases doc. Validation and languages use MockMvc; the rest run on real Docker and are skipped if Docker is off.</td><td><code>controller/LanguageControllerTest.java</code>, <code>controller/ExecutionControllerTest.java</code>, <code>executionEngine/ExecutionEngineTest.java</code></td><td><code>./mvnw test</code> → 45 tests pass</td><td><code>test: add tests from the test cases doc</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
 </div>
 </body>
 </html>
