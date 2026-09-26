@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Definition</title>
+<meta name="description" content="What exec is, who it is for, and what it will and will not do.">
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f1ec;
+    --text: #1f1d1a;
+    --muted: #6b665e;
+    --border: #e4e0d8;
+    --accent: #b4530f;
+    --get: #1f6f43;
+    --get-bg: #e3f2e8;
+    --post: #1d4f91;
+    --post-bg: #e2ebf7;
+    --warn-bg: #fdf3e2;
+    --warn-border: #e9c98f;
+    --code-bg: #f3f1ec;
+    --p1: #b42318;
+    --p1-bg: #fde8e6;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171614;
+      --surface: #1f1e1b;
+      --surface-2: #282622;
+      --text: #ece9e3;
+      --muted: #a39e94;
+      --border: #36332e;
+      --accent: #f0a060;
+      --get: #7fd3a0;
+      --get-bg: #1d3327;
+      --post: #8fb6ef;
+      --post-bg: #1c2a40;
+      --warn-bg: #2e2518;
+      --warn-border: #6b5222;
+      --code-bg: #262420;
+      --p1: #ffb4a8;
+      --p1-bg: #3d1f1b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171614;
+    --surface: #1f1e1b;
+    --surface-2: #282622;
+    --text: #ece9e3;
+    --muted: #a39e94;
+    --border: #36332e;
+    --accent: #f0a060;
+    --get: #7fd3a0;
+    --get-bg: #1d3327;
+    --post: #8fb6ef;
+    --post-bg: #1c2a40;
+    --warn-bg: #2e2518;
+    --warn-border: #6b5222;
+    --code-bg: #262420;
+    --p1: #ffb4a8;
+    --p1-bg: #3d1f1b;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px 96px; }
+  header { margin-bottom: 32px; }
+  .eyebrow { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 8px 0 12px; }
+  h2 { font-size: 24px; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 28px 0 8px; }
+  h2.part { font-size: 28px; margin-top: 56px; padding-top: 16px; border-top: 2px solid var(--accent); }
+  h3.sub { font-size: 21px; margin: 32px 0 12px; }
+  h4 { font-size: 16px; margin: 24px 0 8px; }
+  p { margin: 0 0 14px; }
+  .lede { color: var(--muted); font-size: 18px; max-width: 680px; }
+  .big { font-size: 20px; font-weight: 600; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre {
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.55;
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; margin: 0 0 16px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  nav.docs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 36px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  nav.docs a { text-decoration: none; color: var(--muted); font-size: 14px; padding: 6px 12px; border-radius: 6px; border: 1px solid transparent; }
+  nav.docs a:hover { color: var(--text); background: var(--surface-2); }
+  nav.docs a.on { color: var(--text); background: var(--surface); border-color: var(--border); font-weight: 600; }
+  nav.docs .brand { font-family: var(--mono); font-weight: 700; color: var(--accent); padding-right: 8px; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  nav.toc a { text-decoration: none; color: var(--text); font-size: 14px; border: 1px solid var(--border); background: var(--surface); padding: 4px 12px; border-radius: 999px; }
+  nav.toc a:hover { border-color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 600; font-size: 13px; }
+  tr:last-child td { border-bottom: 0; }
+
+  .endpoint { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 20px 0 28px; }
+  .endpoint > h3 { margin-top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .method { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+  .method.get { color: var(--get); background: var(--get-bg); }
+  .method.post { color: var(--post); background: var(--post-bg); }
+  .path { font-family: var(--mono); font-size: 15px; word-break: break-all; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+
+  .note { background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 8px; padding: 12px 14px; font-size: 14.5px; margin: 0 0 16px; }
+
+  .flow { margin: 12px 0 20px; }
+  .flow svg { width: 100%; height: auto; display: block; }
+  .flow .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  .flow .box.hl { stroke: var(--accent); }
+  .flow .t { fill: var(--text); font: 600 13px var(--sans); }
+  .flow .s { fill: var(--muted); font: 11.5px var(--mono); }
+  .flow .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+  .flow .ah { fill: var(--muted); }
+
+  ol.steps, ul.plain { padding-left: 22px; margin: 0 0 16px; }
+  ol.steps li, ul.plain li { margin-bottom: 8px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0 0 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .card b { display: block; font-family: var(--mono); font-size: 13.5px; margin-bottom: 2px; }
+  .card span { color: var(--muted); font-size: 14px; }
+
+  table.tc td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 13px; }
+  table.tc td:nth-child(2) { min-width: 150px; }
+  table.tc td:nth-child(3) { max-width: 320px; }
+  table.tc pre { margin: 0; padding: 6px 8px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+  .pri { display: inline-block; font: 700 11px var(--mono); padding: 1px 6px; border-radius: 4px; margin-left: 2px; }
+  .pri.p1 { color: var(--p1); background: var(--p1-bg); }
+  .pri.p2 { color: var(--post); background: var(--post-bg); }
+  .pri.p3 { color: var(--muted); background: var(--surface-2); }
+  .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--border); padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+  .risk { color: var(--accent); font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 13px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 2px 8px; color: var(--muted); }
+  .chip b { font-family: var(--mono); color: var(--text); }
+  .st { display: inline-block; font: 700 11px var(--mono); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+  .st.done { color: var(--get); background: var(--get-bg); }
+  .st.ready { color: var(--post); background: var(--post-bg); }
+  .st.todo { color: var(--muted); background: var(--surface-2); }
+  .sha { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  table.plan td { min-width: 110px; }
+  table.plan td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 13px; }
+  table.plan td:last-child code { white-space: normal; word-break: break-word; }
+
+  footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="docs"><span class="brand">exec</span><a href="1-product-definition.html" class="on">1 · Product</a><a href="2-design.html">2 · Design</a><a href="3-implementation-plan.html">3 · Plan</a><a href="4-test-cases.html">4 · Tests</a></nav>
+<header>
+  <div class="eyebrow">exec · Doc 1 of 4</div>
+  <h1>Product Definition</h1>
+  <p class="lede">What exec is, who it's for, and what it will and won't do.</p>
+</header>
+
+<section id="summary">
+  <h2>In one line</h2>
+  <p class="big">exec takes code, runs it safely in Docker, and sends back the output.</p>
+</section>
+
+<section id="problem">
+  <h2>Problem</h2>
+  <p>Running someone's code directly on your computer is dangerous. It could delete files, use the network, or freeze the machine.</p>
+  <p>So this constraint makes it clear for a need for a small service that runs code <b>in a locked box</b> and returns the result.</p>
+</section>
+
+<section id="users">
+  <h2>Users</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Who</th><th>What they want</th></tr></thead>
+      <tbody>
+        <tr><td><b>The developer</b></td><td>One simple API call: send code, get output.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="features">
+  <h2>Features</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Feature</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td>F1</td><td>Run code</td><td><code>POST /api/v1/execute</code> with language + code + stdin (optional). Returns stdout, stderr, exit code, time.</td></tr>
+        <tr><td>F2</td><td>Safe sandbox</td><td>No network, read-only code, 256 MB RAM, 1 CPU, 128 processes, no special permissions.</td></tr>
+        <tr><td>F3</td><td>Logs</td><td>Every run gets a short ID. Logs show start, end, status and time.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="non-goals">
+  <h2>Non-goals (won't do)</h2>
+  <ul class="plain">
+    <li><b>No public deployment.</b> Runs on your own machine only.</li>
+    <li><b>No login or users.</b></li>
+    <li><b>No rate limit or concurrency cap.</b></li>
+    <li><b>No saving code.</b> Nothing is stored after a run.</li>
+    <li><b>No internet</b> from inside the user's program.</li>
+    <li><b>No live output streaming.</b> Output comes back once the run ends.</li>
+    <li><b>No multi-file projects.</b> One file per run.</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

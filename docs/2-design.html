@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design</title>
+<meta name="description" content="How exec is built: high level design and low level design.">
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f1ec;
+    --text: #1f1d1a;
+    --muted: #6b665e;
+    --border: #e4e0d8;
+    --accent: #b4530f;
+    --get: #1f6f43;
+    --get-bg: #e3f2e8;
+    --post: #1d4f91;
+    --post-bg: #e2ebf7;
+    --warn-bg: #fdf3e2;
+    --warn-border: #e9c98f;
+    --code-bg: #f3f1ec;
+    --p1: #b42318;
+    --p1-bg: #fde8e6;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171614;
+      --surface: #1f1e1b;
+      --surface-2: #282622;
+      --text: #ece9e3;
+      --muted: #a39e94;
+      --border: #36332e;
+      --accent: #f0a060;
+      --get: #7fd3a0;
+      --get-bg: #1d3327;
+      --post: #8fb6ef;
+      --post-bg: #1c2a40;
+      --warn-bg: #2e2518;
+      --warn-border: #6b5222;
+      --code-bg: #262420;
+      --p1: #ffb4a8;
+      --p1-bg: #3d1f1b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171614;
+    --surface: #1f1e1b;
+    --surface-2: #282622;
+    --text: #ece9e3;
+    --muted: #a39e94;
+    --border: #36332e;
+    --accent: #f0a060;
+    --get: #7fd3a0;
+    --get-bg: #1d3327;
+    --post: #8fb6ef;
+    --post-bg: #1c2a40;
+    --warn-bg: #2e2518;
+    --warn-border: #6b5222;
+    --code-bg: #262420;
+    --p1: #ffb4a8;
+    --p1-bg: #3d1f1b;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px 96px; }
+  header { margin-bottom: 32px; }
+  .eyebrow { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 8px 0 12px; }
+  h2 { font-size: 24px; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 28px 0 8px; }
+  h2.part { font-size: 28px; margin-top: 56px; padding-top: 16px; border-top: 2px solid var(--accent); }
+  h3.sub { font-size: 21px; margin: 32px 0 12px; }
+  h4 { font-size: 16px; margin: 24px 0 8px; }
+  p { margin: 0 0 14px; }
+  .lede { color: var(--muted); font-size: 18px; max-width: 680px; }
+  .big { font-size: 20px; font-weight: 600; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre {
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.55;
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; margin: 0 0 16px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  nav.docs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 36px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  nav.docs a { text-decoration: none; color: var(--muted); font-size: 14px; padding: 6px 12px; border-radius: 6px; border: 1px solid transparent; }
+  nav.docs a:hover { color: var(--text); background: var(--surface-2); }
+  nav.docs a.on { color: var(--text); background: var(--surface); border-color: var(--border); font-weight: 600; }
+  nav.docs .brand { font-family: var(--mono); font-weight: 700; color: var(--accent); padding-right: 8px; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  nav.toc a { text-decoration: none; color: var(--text); font-size: 14px; border: 1px solid var(--border); background: var(--surface); padding: 4px 12px; border-radius: 999px; }
+  nav.toc a:hover { border-color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 600; font-size: 13px; }
+  tr:last-child td { border-bottom: 0; }
+
+  .endpoint { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 20px 0 28px; }
+  .endpoint > h3 { margin-top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .method { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+  .method.get { color: var(--get); background: var(--get-bg); }
+  .method.post { color: var(--post); background: var(--post-bg); }
+  .path { font-family: var(--mono); font-size: 15px; word-break: break-all; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+
+  .note { background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 8px; padding: 12px 14px; font-size: 14.5px; margin: 0 0 16px; }
+
+  .flow { margin: 12px 0 20px; }
+  .flow svg { width: 100%; height: auto; display: block; }
+  .flow .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  .flow .box.hl { stroke: var(--accent); }
+  .flow .t { fill: var(--text); font: 600 13px var(--sans); }
+  .flow .s { fill: var(--muted); font: 11.5px var(--mono); }
+  .flow .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+  .flow .ah { fill: var(--muted); }
+
+  ol.steps, ul.plain { padding-left: 22px; margin: 0 0 16px; }
+  ol.steps li, ul.plain li { margin-bottom: 8px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0 0 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .card b { display: block; font-family: var(--mono); font-size: 13.5px; margin-bottom: 2px; }
+  .card span { color: var(--muted); font-size: 14px; }
+
+  table.tc td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 13px; }
+  table.tc td:nth-child(2) { min-width: 150px; }
+  table.tc td:nth-child(3) { max-width: 320px; }
+  table.tc pre { margin: 0; padding: 6px 8px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+  .pri { display: inline-block; font: 700 11px var(--mono); padding: 1px 6px; border-radius: 4px; margin-left: 2px; }
+  .pri.p1 { color: var(--p1); background: var(--p1-bg); }
+  .pri.p2 { color: var(--post); background: var(--post-bg); }
+  .pri.p3 { color: var(--muted); background: var(--surface-2); }
+  .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--border); padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+  .risk { color: var(--accent); font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 13px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 2px 8px; color: var(--muted); }
+  .chip b { font-family: var(--mono); color: var(--text); }
+  .st { display: inline-block; font: 700 11px var(--mono); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+  .st.done { color: var(--get); background: var(--get-bg); }
+  .st.ready { color: var(--post); background: var(--post-bg); }
+  .st.todo { color: var(--muted); background: var(--surface-2); }
+  .sha { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  table.plan td { min-width: 110px; }
+  table.plan td:first-child { white-space: nowrap; font-family: var(--mono); font-size: 13px; }
+  table.plan td:last-child code { white-space: normal; word-break: break-word; }
+
+  footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="docs"><span class="brand">exec</span><a href="1-product-definition.html">1 · Product</a><a href="2-design.html" class="on">2 · Design</a><a href="3-implementation-plan.html">3 · Plan</a><a href="4-test-cases.html">4 · Tests</a></nav>
+<header>
+  <div class="eyebrow">exec · Doc 2 of 4</div>
+  <h1>Design</h1>
+  <p class="lede">exec is a small Spring Boot service that takes code, language and stdin, runs it inside a short-lived, locked-down Docker container, and returns stdout, stderr, the exit code and how long it took.</p>
+</header>
+
+<h2 class="part">High Level Design</h2>
+
+<section id="overview">
+  <h3 class="sub">Overview</h3>
+  <p>Both endpoints live under <code>/api/v1</code>. Requests and responses are JSON. There is no login, and CORS allows every origin on <code>/api/**</code>.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><span class="method get">GET</span></td><td><code>/api/v1/languages</code></td><td>List the supported languages</td></tr>
+        <tr><td><span class="method post">POST</span></td><td><code>/api/v1/execute</code></td><td>Run code and return its output</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="flow">
+  <h3 class="sub">How execution works</h3>
+  <div class="flow" role="img" aria-label="A request goes to ExecutionEngine.execute(), which runs a sandboxed docker container and returns an ExecuteResponse">
+    <svg viewBox="0 0 880 150" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="ah" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+      <rect class="box" x="40" y="40" width="180" height="64" rx="8"/>
+      <text class="t" x="130" y="77" text-anchor="middle">request</text>
+
+      <rect class="box hl" x="350" y="40" width="180" height="64" rx="8"/>
+      <text class="t" x="440" y="68" text-anchor="middle">ExecutionEngine</text>
+      <text class="s" x="440" y="88" text-anchor="middle">execute()</text>
+
+      <rect class="box" x="660" y="40" width="180" height="64" rx="8"/>
+      <text class="t" x="750" y="68" text-anchor="middle">docker run</text>
+      <text class="s" x="750" y="88" text-anchor="middle">sandbox</text>
+
+      <path class="arrow" d="M220,72 H346"/>
+      <path class="arrow" d="M530,72 H656"/>
+      <path class="arrow" d="M750,104 V128 H130 V108"/>
+      <text class="s" x="440" y="146" text-anchor="middle">ExecuteResponse: status, stdout, stderr, exitCode, executionTimeMs</text>
+    </svg>
+  </div>
+</section>
+
+<h2 class="part">Low Level Design</h2>
+
+<section id="layout">
+  <h3 class="sub">Project layout</h3>
+  <h4>Java code · <code>src/main/java/com/backend/exec/</code></h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What</th></tr></thead>
+      <tbody>
+        <tr><td><code>Exec.java</code></td><td>Starts the app</td></tr>
+        <tr><td><code>config/WebConfig.java</code></td><td>CORS: allow all origins</td></tr>
+        <tr><td><code>controller/ExecutionController.java</code></td><td><code>POST /execute</code> endpoint</td></tr>
+        <tr><td><code>controller/LanguageController.java</code></td><td><code>GET /languages</code> endpoint</td></tr>
+        <tr><td><code>service/CodeExecutionService.java</code></td><td>Adds log ID, calls engine, logs result</td></tr>
+        <tr><td><code>executionEngine/ExecutionEngine.java</code></td><td>Runs code in Docker, returns output</td></tr>
+        <tr><td><code>language/Language.java</code></td><td>List of languages (enum)</td></tr>
+        <tr><td><code>language/LanguageConfig.java</code></td><td>Image, file name, run command</td></tr>
+        <tr><td><code>language/LanguageRegistry.java</code></td><td>Config for each language</td></tr>
+        <tr><td><code>request/ExecuteRequest.java</code></td><td>Request body + validation</td></tr>
+        <tr><td><code>response/ExecuteResponse.java</code></td><td>Run result</td></tr>
+        <tr><td><code>response/AvailableLanguagesResponse.java</code></td><td>Languages list response</td></tr>
+        <tr><td><code>exception/ExecutionFailedException.java</code></td><td>Error when a run can't start</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h4>Resources · <code>src/main/resources/</code></h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What</th></tr></thead>
+      <tbody>
+        <tr><td><code>application.properties</code></td><td>Port, app name, logging</td></tr>
+        <tr><td><code>banner.txt</code></td><td>"EXEC" startup art</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h4>Tests · <code>src/test/java/com/backend/exec/</code></h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What</th></tr></thead>
+      <tbody>
+        <tr><td><code>ExecTests.java</code></td><td>Checks the app starts</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h4>Project root</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What</th></tr></thead>
+      <tbody>
+        <tr><td><code>pom.xml</code></td><td>Dependencies and build</td></tr>
+        <tr><td><code>mvnw, mvnw.cmd, .mvn/</code></td><td>Maven wrapper</td></tr>
+        <tr><td><code>Dockerfile</code></td><td>Builds the app image</td></tr>
+        <tr><td><code>docker-compose.yml</code></td><td>Runs the app in Docker</td></tr>
+        <tr><td><code>.dockerignore</code></td><td>Files Docker skips</td></tr>
+        <tr><td><code>.gitignore</code></td><td>Files git skips</td></tr>
+        <tr><td><code>.gitattributes</code></td><td>Git line-ending rules</td></tr>
+        <tr><td><code>README.md</code></td><td>Project intro</td></tr>
+        <tr><td><code>docs/</code></td><td>These 4 docs</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="api">
+  <h3 class="sub">API contract</h3>
+
+  <div class="endpoint" id="get-languages">
+    <h3><span class="method get">GET</span><span class="path">/api/v1/languages</span></h3>
+    <p>Returns every supported language. Use these exact values in <code>POST /api/v1/execute</code>.</p>
+    <div class="label">Response · 200 OK</div>
+<pre><code>{
+  "availableLanguages": ["PYTHON", "JAVASCRIPT", "JAVA", "C", "CPP"]
+}</code></pre>
+  </div>
+
+  <div class="endpoint" id="post-execute">
+    <h3><span class="method post">POST</span><span class="path">/api/v1/execute</span></h3>
+    <p>Runs the code in a sandboxed container and returns what it printed. The HTTP status is 200 whenever the code ran, even if the program crashed or timed out; check <code>status</code> in the body.</p>
+
+    <div class="label">Request body</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Rules</th></tr></thead>
+        <tbody>
+          <tr><td><code>language</code></td><td>string</td><td>Yes</td><td>One of <code>PYTHON</code>, <code>JAVASCRIPT</code>, <code>JAVA</code>, <code>C</code>, <code>CPP</code> (uppercase)</td></tr>
+          <tr><td><code>code</code></td><td>string</td><td>Yes</td><td>Not blank, at most 100,000 characters</td></tr>
+          <tr><td><code>stdin</code></td><td>string</td><td>No</td><td>At most 10,000 characters; sent to the program's standard input</td></tr>
+        </tbody>
+      </table>
+    </div>
+<pre><code>{
+  "language": "PYTHON",
+  "code": "name = input()\nprint(f\"Hello, {name}!\")",
+  "stdin": "Ada"
+}</code></pre>
+
+    <div class="label">Response body · 200 OK</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>status</code></td><td>string</td><td><code>SUCCESS</code>, <code>ERROR</code> or <code>TIMEOUT</code></td></tr>
+          <tr><td><code>stdout</code></td><td>string</td><td>Standard output, capped at 1 MB</td></tr>
+          <tr><td><code>stderr</code></td><td>string</td><td>Standard error, including compile errors. On timeout it holds the timeout message.</td></tr>
+          <tr><td><code>exitCode</code></td><td>integer | null</td><td>Process exit code; <code>null</code> on timeout</td></tr>
+          <tr><td><code>executionTimeMs</code></td><td>integer</td><td>Wall-clock time in ms, including container start and compiling</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>status</th><th>When</th><th>exitCode</th></tr></thead>
+        <tbody>
+          <tr><td><code>SUCCESS</code></td><td>Program finished with exit code 0</td><td><code>0</code></td></tr>
+          <tr><td><code>ERROR</code></td><td>Non-zero exit code (runtime error, failed compile, <code>exit(1)</code>, out of memory…)</td><td>non-zero</td></tr>
+          <tr><td><code>TIMEOUT</code></td><td>Still running after 10 seconds; killed</td><td><code>null</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="label">Examples</div>
+<pre><code>// SUCCESS
+{ "status": "SUCCESS", "stdout": "Hello, Ada!\n", "stderr": "", "exitCode": 0, "executionTimeMs": 412 }
+
+// ERROR
+{ "status": "ERROR", "stdout": "",
+  "stderr": "Traceback (most recent call last):\n  ...\nZeroDivisionError: division by zero\n",
+  "exitCode": 1, "executionTimeMs": 398 }
+
+// TIMEOUT
+{ "status": "TIMEOUT", "stdout": "",
+  "stderr": "Execution timed out after 10 seconds",
+  "exitCode": null, "executionTimeMs": 10004 }</code></pre>
+
+    <div class="label">curl</div>
+<pre><code>curl -X POST http://localhost:8080/api/v1/execute \
+  -H "Content-Type: application/json" \
+  -d '{"language":"PYTHON","code":"print(1 + 1)"}'</code></pre>
+  </div>
+</section>
+
+<section id="limits">
+  <h3 class="sub">Limits &amp; sandbox</h3>
+  <div class="grid">
+    <div class="card"><b>10 s</b><span>Max run time, including compiling</span></div>
+    <div class="card"><b>1 MB</b><span>Per stream (stdout, stderr); the rest is cut with a "[output truncated]" note</span></div>
+    <div class="card"><b>100,000 chars</b><span>Max code size</span></div>
+    <div class="card"><b>10,000 chars</b><span>Max stdin size</span></div>
+  </div>
+  <h4>Container flags</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>--rm</code></td><td>Container is deleted when it exits</td></tr>
+        <tr><td><code>--network none</code></td><td>No network</td></tr>
+        <tr><td><code>--memory 256m</code></td><td>256 MB RAM cap</td></tr>
+        <tr><td><code>--cpus 1.0</code></td><td>At most one CPU core</td></tr>
+        <tr><td><code>--pids-limit 128</code></td><td>Stops fork bombs</td></tr>
+        <tr><td><code>--cap-drop ALL</code></td><td>No Linux capabilities</td></tr>
+        <tr><td><code>--security-opt no-new-privileges</code></td><td>Can't gain privileges via setuid</td></tr>
+        <tr><td><code>-v &lt;dir&gt;:/code:ro</code></td><td>Code folder is read-only</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+</body>
+</html>
