@@ -1,6 +1,6 @@
 # exec
 
-A local code execution API that runs untrusted code securely inside isolated Docker containers.
+A code execution API that runs untrusted code securely inside isolated Docker containers.
 
 ## Languages
 
